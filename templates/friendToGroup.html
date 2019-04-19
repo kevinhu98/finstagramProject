@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block head %}
+    <title>Image Upload</title>
+{% endblock %}
+{% block body %}
+
+<h1>Add a person to your group!</h1>
+<div>
+    <form action="/friendToGroup" method="post" enctype="multipart/form-data">
+
+        <div class="groupList">
+            <label>Your Groups</label>
+            <br>
+            <select class="selectpicker" name="closefriendgroups" data-live-search="true" single required >
+                <option value="" disabled selected> Select a group you own</option>
+                {% for group in closefriendgroups %}
+
+                <option> {{group.groupName}}</option>
+
+                {% endfor %}
+            </select>
+        </div>
+        <div class="peopleList">
+            <label>People</label>
+            <br>
+            <select class="selectpicker" name="people" data-live-search="true" single required>
+                <option value="" disabled selected> Select a user to add</option>
+                {% for person in people %}
+
+                <option> {{person.username}}</option>
+
+                {% endfor %}
+            </select>
+            <br>
+        </div>
+        <input type="submit"  class="btn btn-danger"value="Add User">
+    </form>
+</div>
+
+{% if message %}
+{{ message }}
+{% endif %}
+<br/>
+<a href="/">Go back</a>
+
+{% endblock %}

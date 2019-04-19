@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+
+{% block head %}
+    <title>Image Upload</title>
+{% endblock %}
+{% block body %}
+
+<h1>Follow a user or manage your current requests!</h1>
+<div>
+    <form action="/follow" method="post" enctype="multipart/form-data">
+
+        <div class="followList">
+            <label>People that want to follow you!</label>
+            <br>
+            <select class="selectpicker" name="followRequestor" data-live-search="true" single>
+                <option value="" disabled selected> Select a follow request</option>
+                {% for follow in followRequests %}
+
+                <option> {{follow.followerUsername}}</option>
+
+                {% endfor %}
+            </select>
+        </div>
+        <input type="submit"  class="btn btn-success" name= "submit-button" value="Accept">
+        <input type="submit" class="btn btn-danger" name= "submit-button" value="Reject">
+        <br>
+        <br>
+        <div class="followList">
+            <label>Follow a User</label>
+            <br>
+            <select class="selectpicker" name="personToFollow" data-live-search="true" single>
+                <option value="" disabled selected> Select a user to follow</option>
+                {% for person in people %}
+
+                <option> {{person.username}}</option>
+
+                {% endfor %}
+            </select>
+            <br>
+        </div>
+        <input type="submit"  class="btn btn-warning" name= "submit-button" value="Send a Follow Request">
+    </form>
+</div>
+<br>
+
+{% if message %}
+{{ message }}
+{% endif %}
+<br/>
+<a href="/">Go back</a>
+
+{% endblock %}

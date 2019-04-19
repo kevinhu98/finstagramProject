@@ -1,20 +1,44 @@
-<html>
-    <head>
-        <title>Image Upload</title>
-    </head>
-    <body>
-        <h1>Upload an Image!</h1>
-        <div>
-            <form action="/uploadImage" method="post" enctype="multipart/form-data">
-                <input type="file" name="imageToUpload" accept="image/*">
-                <br/>
-                <input type="submit" value="Upload">
-            </form>
-        </div>
-        {% if message %}
-            {{ message }}
-        {% endif %}
+{% extends "base.html" %}
+
+{% block head %}
+    <title>Image Upload</title>
+{% endblock %}
+{% block body %}
+
+<h1>Upload an Image!</h1>
+<div>
+    <form action="/uploadImage" method="post" enctype="multipart/form-data">
+        <input type="file" name="imageToUpload" accept="image/*" required>
+
+        <input type="submit" value="Upload">
         <br/>
-        <a href="/">Go back</a>
-    </body>
-</html>
+        Caption: <input type="text" name="caption"><br>
+        <div class="form-check">
+            <input class="form-check-input" name="allFollowers" type="checkbox" value="" id="allFollowers" checked>
+            <label class="form-check-label" for="allFollowers">
+                All Followers
+            </label>
+        </div>
+
+        <div class="col-md-12">
+            <label>Specific Groups</label>
+            <br>
+            <select class="mdb-select colorful-select dropdown-primary md-form" name="closefriendgroups" multiple>
+                <option value="" disabled selected>Press Control and Click</option>
+                {% for group in closefriendgroups %}
+
+                <option> {{group.groupName}}</option>
+
+                {% endfor %}
+            </select>
+        </div>
+    </form>
+</div>
+
+{% if message %}
+{{ message }}
+{% endif %}
+<br/>
+<a href="/">Go back</a>
+
+{% endblock %}
