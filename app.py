@@ -6,6 +6,29 @@ import pymysql.cursors
 from functools import wraps
 import time
 
+def loadFollowData(followRequests, people, username):
+    # getPeopleQuery gets list of people you haven't sent follow request yet and yourself (so you can't try to follow self)
+    getPeopleQuery = "SELECT * FROM person WHERE person.username NOT IN (SELECT followeeUsername FROM follow WHERE followerUsername = %s) " \
+                     "AND person.username NOT IN (SELECT person.username FROM person WHERE person.username = %s)";
+    getFollowRequestQuery = "SELECT * FROM follow WHERE follow.followeeUsername = %s AND acceptedFollow = 0"
+    with connection.cursor() as cursor:
+        cursor.execute(getFollowRequestQuery, (username))
+    followRequests.extend(cursor.fetchall())
+    with connection.cursor() as cursor:
+        cursor.execute(getPeopleQuery, (username, username))
+    people.extend(cursor.fetchall())
+
+def loadFriendToGroupData(closefriendgroups, people, username):
+    getGroupsQuery = "SELECT * FROM closefriendgroup WHERE groupOwner = %s"
+    getPeopleQuery = "SELECT * FROM person"
+
+    with connection.cursor() as cursor:
+        cursor.execute(getGroupsQuery, (username))
+    closefriendgroups.extend(cursor.fetchall())
+    with connection.cursor() as cursor:
+        cursor.execute(getPeopleQuery)
+    people.extend(cursor.fetchall())
+
 app = Flask(__name__)
 app.secret_key = "super secret key"
 IMAGES_DIR = os.path.join(os.getcwd(), "images")
@@ -50,36 +73,20 @@ def upload():
 @app.route("/follow", methods=['GET','POST'])
 @login_required
 def follow():
+    username = session["username"]
+    followRequests, people = [], []
     if request.method == 'GET':
-        username = session["username"]
-        #getPeopleQuery gets list of people you haven't sent follow request yet and yourself (so you can't try to follow self)
-        getPeopleQuery = "SELECT * FROM person WHERE person.username NOT IN (SELECT followeeUsername FROM follow WHERE followerUsername = %s) " \
-                         "AND person.username NOT IN (SELECT person.username FROM person WHERE person.username = %s)";
-        getFollowRequestQuery = "SELECT * FROM follow WHERE follow.followeeUsername = %s AND acceptedFollow = 0"
-        with connection.cursor() as cursor:
-            cursor.execute(getFollowRequestQuery, (username))
-        followRequests = cursor.fetchall()
-        with connection.cursor() as cursor:
-            cursor.execute(getPeopleQuery, (username, username))
-        people = cursor.fetchall()
+        loadFollowData(followRequests, people, username)
         return render_template("follow.html", people = people, followRequests = followRequests)
 
     if request.method == 'POST':
         username = session["username"]
         if request.form['submit-button'] == "Accept":
-            getPeopleQuery = "SELECT * FROM person WHERE person.username NOT IN (SELECT followeeUsername FROM follow WHERE followerUsername = %s) " \
-                             "AND person.username NOT IN (SELECT person.username FROM person WHERE person.username = %s)"
-            getFollowRequestQuery = "SELECT * FROM follow WHERE follow.followeeUsername = %s AND acceptedFollow = 0"
-            with connection.cursor() as cursor:
-                cursor.execute(getFollowRequestQuery, (username))
-            followRequests = cursor.fetchall()
-            with connection.cursor() as cursor:
-                cursor.execute(getPeopleQuery, (username, username))
-            people = cursor.fetchall()
-
+            loadFollowData(followRequests, people, username)
             personToAccept = request.form.get("followRequestor")
             if (personToAccept == None):
                 message = "You cannot leave both fields empty!"
+                loadFollowData(followRequests, people, username)
                 return render_template("follow.html", people=people, followRequests=followRequests, message=message)
 
             acceptUpdateQuery = "UPDATE follow SET acceptedfollow = 1 WHERE followerUsername = %s AND followeeUsername = %s"
@@ -87,24 +94,17 @@ def follow():
                 with connection.cursor() as cursor:
                     cursor.execute(acceptUpdateQuery, (personToAccept, username))
                 message = "You have just accepted that user's follow request!"
+                loadFollowData(followRequests, people, username)
                 return render_template("follow.html", people=people, followRequests=followRequests, message=message)
             except:
                 message = "You cannot leave both fields empty!"
+                loadFollowData(followRequests, people, username)
                 return render_template("follow.html", people=people, followRequests=followRequests, message=message)
         elif request.form['submit-button'] == "Reject":
-            getPeopleQuery = "SELECT * FROM person WHERE person.username NOT IN (SELECT followeeUsername FROM follow WHERE followerUsername = %s) " \
-                             "AND person.username NOT IN (SELECT person.username FROM person WHERE person.username = %s)"
-            getFollowRequestQuery = "SELECT * FROM follow WHERE follow.followeeUsername = %s AND acceptedFollow = 0"
-            with connection.cursor() as cursor:
-                cursor.execute(getFollowRequestQuery, (username))
-            followRequests = cursor.fetchall()
-            with connection.cursor() as cursor:
-                cursor.execute(getPeopleQuery, (username, username))
-            people = cursor.fetchall()
-
             personToReject = request.form.get("followRequestor")
             if (personToReject == None):
                 message = "You cannot leave both fields empty!"
+                loadFollowData(followRequests, people, username)
                 return render_template("follow.html", people=people, followRequests=followRequests, message=message)
 
             rejectUpdateQuery = "DELETE FROM follow WHERE followerUsername = %s AND followeeUsername = %s"
@@ -112,81 +112,59 @@ def follow():
                 with connection.cursor() as cursor:
                     cursor.execute(rejectUpdateQuery, (personToReject, username))
                 message = "You have just rejected that user's follow request!"
+                loadFollowData(followRequests, people, username)
                 return render_template("follow.html", people=people, followRequests=followRequests, message=message)
             except:
                 message = "You cannot leave both fields empty!"
+                loadFollowData(followRequests, people, username)
                 return render_template("follow.html", people=people, followRequests=followRequests, message=message)
         elif request.form['submit-button'] == "Send a Follow Request":
             personToFollow = request.form.get("personToFollow")
             sendFollowRequestQuery = "INSERT INTO follow VALUES (%s,%s,%s)"
 
-            #convert to func
-
-            getPeopleQuery = "SELECT * FROM person WHERE person.username NOT IN (SELECT followeeUsername FROM follow WHERE followerUsername = %s) " \
-                             "AND person.username NOT IN (SELECT person.username FROM person WHERE person.username = %s)"
-            getFollowRequestQuery = "SELECT * FROM follow WHERE follow.followeeUsername = %s"
-            with connection.cursor() as cursor:
-                cursor.execute(getFollowRequestQuery, (username))
-            followRequests = cursor.fetchall()
-            with connection.cursor() as cursor:
-                cursor.execute(getPeopleQuery, (username, username))
-            people = cursor.fetchall()
             try:
                 with connection.cursor() as cursor:
                     cursor.execute(sendFollowRequestQuery, (username, personToFollow, 0))
                 message = "That user has just been sent a follow request!"
+                loadFollowData(followRequests, people, username)
                 return render_template("follow.html", people=people, followRequests=followRequests, message = message)
             except:
                 message = "You cannot leave both fields empty!"
+                loadFollowData(followRequests, people, username)
                 return render_template("follow.html", people=people, followRequests=followRequests, message=message)
 
 @app.route("/friendToGroup", methods=['GET','POST'])
 @login_required
 def friendToGroup():
+    username = session["username"]
+    closefriendgroups, people = [], []
     if request.method == 'GET':
-        username = session["username"]
-        getGroupsQuery = "SELECT * FROM closefriendgroup WHERE groupOwner = %s"
-        getPeopleQuery = "SELECT * FROM person"
-
-        with connection.cursor() as cursor:
-            cursor.execute(getGroupsQuery, (username))
-        closefriendgroups = cursor.fetchall()
-        with connection.cursor() as cursor:
-            cursor.execute(getPeopleQuery)
-        people = cursor.fetchall()
+        loadFriendToGroupData(closefriendgroups,people,username)
         return render_template("friendToGroup.html", closefriendgroups = closefriendgroups, people = people)
 
     if request.method == 'POST':
         closeFriendGroupSelected = request.form.get("closefriendgroups")
         personToAdd = request.form.get("people")
         insertUserQuery = "INSERT INTO belong VALUES (%s, %s, %s)"
-        username = session["username"]
-        #Part of 'get' code ran again so that the text boxes are repopulated when a user is added
-        getGroupsQuery = "SELECT * FROM closefriendgroup WHERE groupOwner = %s"
-        getPeopleQuery = "SELECT * FROM person"
-        with connection.cursor() as cursor:
-            cursor.execute(getGroupsQuery, (username))
-        closefriendgroups = cursor.fetchall()
-        with connection.cursor() as cursor:
-            cursor.execute(getPeopleQuery)
-        people = cursor.fetchall()
-
         try:
             with connection.cursor() as cursor:
                 cursor.execute(insertUserQuery, (closeFriendGroupSelected, username, personToAdd))
             message = "User successfully added"
+            loadFriendToGroupData(closefriendgroups,people,username)
             return render_template("friendToGroup.html", message=message, closefriendgroups = closefriendgroups, people = people)
         except:
             message = "This person is already in that group"
+            loadFriendToGroupData(closefriendgroups, people, username)
             return render_template("friendToGroup.html", message=message, closefriendgroups = closefriendgroups, people = people)
 
 
 @app.route("/images", methods=["GET"])
 @login_required
 def images():
-    query = "SELECT * FROM photo"
+    username = session["username"]
+    query = "SELECT * FROM photo WHERE photoOwner= %s"
     with connection.cursor() as cursor:
-        cursor.execute(query)
+        cursor.execute(query, username)
     data = cursor.fetchall()
     return render_template("images.html", images=data)
 
@@ -286,7 +264,7 @@ def upload_image():
                 shareQuery = "INSERT INTO share VALUES (%s, %s, %s)"
                 with connection.cursor() as cursor:
                     cursor.execute(shareQuery, (data[0],data[1], photoID))
-        print(filepath)
+
         return render_template("upload.html", message=message)
     else:
         message = "Failed to upload image."

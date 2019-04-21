@@ -1,15 +1,29 @@
-<html>
-    <head>
-        <title>Finstagram</title>
-    </head>
-    <body>
-        <h1>Image Gallery</h1>
-        <div>
-            {% for image in images %}
+{% extends "base.html" %}
 
-            <img src="/image/{{image.filePath}}" width="300"/>
+{% block head %}
+    <title>Image Upload</title>
+{% endblock %}
+{% block body %}
+        <h1>Image Gallery</h1>
+            {% for i in range(0, (images|length), 4) %}
+<div class = "row">
+{% for image in images[i:i+4] %}
+<div class="col-md-3">
+    <div class="card">
+                    <img class="card-img-top" src="/image/{{image.filePath}}" alt="Card image cap">
+                        <div class="card-body">
+                        <h5 class="card-title"> {{image.caption}}</h5>
+                            <p class="card-text">This is a wider card with supporting text below as a natural lead-in to additional content. This content is a little bit longer.</p>
+                            <p class="card-text"><small class="text-muted">Last updated 3 mins ago</small></p>
+                        </div>
+                    </div>
+
+</div>
+
+                {% endfor %}
+     </div>
             {% endfor %}
-        </div>
+
         <a href="/">Go back</a>
-    </body>
-</html>
+
+{% endblock %}
