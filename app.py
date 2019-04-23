@@ -29,6 +29,24 @@ def loadFriendToGroupData(closefriendgroups, people, username):
         cursor.execute(getPeopleQuery)
     people.extend(cursor.fetchall())
 
+def loadTaggableData():
+
+def loadViewableImageData(imageData,username):
+    getViewableImageDataQuery = "SELECT * FROM photo WHERE photoID IN(" \
+                           "SELECT photoID FROM photo WHERE photoOwner=%s " \
+                           "UNION " \
+                           "SELECT photoID FROM share JOIN belong ON (share.groupName=belong.groupName AND share.groupOwner = belong.groupOwner) " \
+                           "WHERE belong.username = %s " \
+                           "UNION " \
+                           "SELECT photoID FROM photo JOIN follow ON (photo.photoOwner = follow.followerUsername) " \
+                           "WHERE photo.allFollowers = 1 AND follow.followerUsername = %s " \
+                           "UNION " \
+                           "SELECT photoID FROM tag WHERE tag.acceptedTag = 1 AND tag.username = %s)" \
+                           "ORDER BY timestamp DESC"
+    with connection.cursor() as cursor:
+        cursor.execute(getViewableImageDataQuery, (username,username,username,username))
+    imageData.extend(cursor.fetchall())
+
 app = Flask(__name__)
 app.secret_key = "super secret key"
 IMAGES_DIR = os.path.join(os.getcwd(), "images")
@@ -54,12 +72,21 @@ def index():
         return redirect(url_for("home"))
     return render_template("index.html")
 
+@app.route("/tag/<photoID>", methods=['GET','POST'])
+@login_required
+def tag():
+    username = session["username"]
+    taggedUsers, taggableUsers = [], []
+    if request.method == 'GET':
+        loadTagData(taggedUsers, username)
+        loadTaggableData()
+
 @app.route("/home")
 @login_required
 def home():
     return render_template("home.html", username=session["username"])
 
-@app.route("/upload", methods=["GET"])
+@app.route("/upload", methods=['GET'])
 @login_required
 def upload():
     username = session["username"]
@@ -67,7 +94,6 @@ def upload():
     with connection.cursor() as cursor:
         cursor.execute(getGroupsQuery, (username))
     closefriendgroups = cursor.fetchall()
-
     return render_template("upload.html", closefriendgroups = closefriendgroups)
 
 @app.route("/follow", methods=['GET','POST'])
@@ -162,11 +188,9 @@ def friendToGroup():
 @login_required
 def images():
     username = session["username"]
-    query = "SELECT * FROM photo WHERE photoOwner= %s"
-    with connection.cursor() as cursor:
-        cursor.execute(query, username)
-    data = cursor.fetchall()
-    return render_template("images.html", images=data)
+    imageData = []
+    loadViewableImageData(imageData, username)
+    return render_template("images.html", images=imageData)
 
 @app.route("/image/<image_name>", methods=["GET"])
 def image(image_name):

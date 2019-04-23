@@ -1,18 +1,21 @@
-<html>
-    <head>
-        <title>Finstagram</title>
-    </head>
+{% extends "base.html" %}
+
+{% block head %}
+    <title>Homepage</title>
+{% endblock %}
+{% block body %}
+
     <body>
         <h1>Hello, {{ username }}!</h1>
         <h2>Pick an option below!</h2>
         <div>
-            <ul>
-                <li><a href="/images">View Images</a></li>
-                <li><a href="/upload">Upload an Image</a></li>
-                <li><a href="/friendToGroup">Add a User to Your Group</a></li>
-                <li><a href="/follow">Follow Someone or Manage your Follow Requests</a></li>
-                <li><a href="/logout">Logout</a></li>
-            </ul>
+            <a class="list-group">
+                <a href="/images" class="list-group-item list-group-item-action list-group-item-primary">View Images</a>
+                <a href="/upload" class="list-group-item list-group-item-action list-group-item-success">Upload an Image</a>
+                <a href="/friendToGroup" class="list-group-item list-group-item-action list-group-item-dark">Add a User to Your Group</a>
+                <a href="/follow" class="list-group-item list-group-item-action list-group-item-warning">Follow Someone or Manage your Follow Requests</a>
+                <a href="/logout" class="list-group-item list-group-item-action list-group-item-danger">Logout</a>
+
         </div>
     </body>
-</html>
+    {% endblock %}
