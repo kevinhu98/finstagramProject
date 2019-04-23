@@ -5,38 +5,15 @@
 {% endblock %}
 {% block body %}
 
-<h1>Add a person to your group!</h1>
-<div>
-    <form action="/tag" method="post" enctype="multipart/form-data">
+    <img class="card-img-top" src="/image/{{image.filePath}}" alt="Card image cap">
+                        <div class="card-body">
+                        <h5 class="card-title"> {{image.photoOwner}}</h5>
+                            <p class="card-text"> {{image.caption}}</p>
 
-        <div class="groupList">
-            <label>Your Groups</label>
-            <br>
-            <select class="selectpicker" name="closefriendgroups" data-live-search="true" single required >
-                <option value="" disabled selected> Select a group you own</option>
-                {% for group in closefriendgroups %}
-
-                <option> {{group.groupName}}</option>
-
-                {% endfor %}
-            </select>
-        </div>
-        <div class="peopleList">
-            <label>People</label>
-            <br>
-            <select class="selectpicker" name="people" data-live-search="true" single required>
-                <option value="" disabled selected> Select a user to add</option>
-                {% for person in people %}
-
-                <option> {{person.username}}</option>
-
-                {% endfor %}
-            </select>
-            <br>
-        </div>
-        <input type="submit"  class="btn btn-danger"value="Add User">
-    </form>
-</div>
+                            <p class="card-text"><small class="text-muted">Posted on: {{image.timestamp}}
+                                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                                PhotoID: {{image.photoID}}</small></p>
+                            <p class="card-text"><small class="text-muted"></small></p>
 
 {% if message %}
 {{ message }}

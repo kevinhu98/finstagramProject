@@ -29,7 +29,11 @@ def loadFriendToGroupData(closefriendgroups, people, username):
         cursor.execute(getPeopleQuery)
     people.extend(cursor.fetchall())
 
-def loadTaggableData():
+def loadTaggableData(tagData, photoID):
+    getTaggableDataQuery = "SELECT * FROM tag WHERE tag.photoID NOT IN (SELECT photoID from tag WHERE tag.photoID = %s)"
+    with connection.cursor() as cursor:
+        cursor.execute(getTaggableDataQuery, (photoID))
+    tagData.extend(cursor.fetchall())
 
 def loadViewableImageData(imageData,username):
     getViewableImageDataQuery = "SELECT * FROM photo WHERE photoID IN(" \
@@ -47,6 +51,12 @@ def loadViewableImageData(imageData,username):
         cursor.execute(getViewableImageDataQuery, (username,username,username,username))
     imageData.extend(cursor.fetchall())
 
+def loadSpecificImageData(specificData, photoID):
+    loadSpecificImageQuery = "SELECT * FROM photo WHERE photoID = %s"
+    with connection.cursor() as cursor:
+        cursor.execute(loadSpecificImageQuery, photoID)
+    specificData.extend(cursor.fetchall())
+
 app = Flask(__name__)
 app.secret_key = "super secret key"
 IMAGES_DIR = os.path.join(os.getcwd(), "images")
@@ -54,7 +64,7 @@ IMAGES_DIR = os.path.join(os.getcwd(), "images")
 connection = pymysql.connect(host="localhost",
                              database="finsta",
                              user="root",
-                             password="102723",
+                             password="",
                              cursorclass=pymysql.cursors.DictCursor,
                              autocommit=True)
 
@@ -72,19 +82,19 @@ def index():
         return redirect(url_for("home"))
     return render_template("index.html")
 
-@app.route("/tag/<photoID>", methods=['GET','POST'])
-@login_required
-def tag():
-    username = session["username"]
-    taggedUsers, taggableUsers = [], []
-    if request.method == 'GET':
-        loadTagData(taggedUsers, username)
-        loadTaggableData()
 
 @app.route("/home")
 @login_required
 def home():
     return render_template("home.html", username=session["username"])
+
+@app.route("/tag/<photoID>", methods=['GET'])
+@login_required
+def tag(photoID):
+    username = session["username"]
+    specificData = []
+    loadSpecificImageData(specificData, photoID)
+    return render_template("tag.html", image=specificData)
 
 @app.route("/upload", methods=['GET'])
 @login_required
@@ -183,6 +193,11 @@ def friendToGroup():
             loadFriendToGroupData(closefriendgroups, people, username)
             return render_template("friendToGroup.html", message=message, closefriendgroups = closefriendgroups, people = people)
 
+@app.route("/viewTagged", methods=['GET','POST'])
+@login_required
+def viewTagged():
+    username = session["username"]
+    taggedImages, photoID = []
 
 @app.route("/images", methods=["GET"])
 @login_required
@@ -287,7 +302,7 @@ def upload_image():
                 print(data)
                 shareQuery = "INSERT INTO share VALUES (%s, %s, %s)"
                 with connection.cursor() as cursor:
-                    cursor.execute(shareQuery, (data[0],data[1], photoID))
+                    cursor.execute(shareQuery, (data["groupName"],data["groupOwner"], photoID))
 
         return render_template("upload.html", message=message)
     else:
