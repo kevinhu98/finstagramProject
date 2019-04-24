@@ -51,11 +51,20 @@ def loadViewableImageData(imageData,username):
         cursor.execute(getViewableImageDataQuery, (username,username,username,username))
     imageData.extend(cursor.fetchall())
 
-def loadSpecificImageData(specificData, photoID):
+def loadSpecificImageData(photoID):
     loadSpecificImageQuery = "SELECT * FROM photo WHERE photoID = %s"
     with connection.cursor() as cursor:
         cursor.execute(loadSpecificImageQuery, photoID)
-    specificData.extend(cursor.fetchall())
+    return cursor.fetchone()
+
+def loadTaggedUsersData(taggedUsers, photoID):
+    loadTaggedUsersQuery = "SELECT username from tag WHERE photoID = %s AND acceptedTag = 1"
+    with connection.cursor() as cursor:
+        cursor.execute(loadTaggedUsersQuery, photoID)
+    taggedUsers.extend(cursor.fetchall())
+
+def loadTaggedData():
+    pass
 
 app = Flask(__name__)
 app.secret_key = "super secret key"
@@ -91,10 +100,9 @@ def home():
 @app.route("/tag/<photoID>", methods=['GET'])
 @login_required
 def tag(photoID):
-    username = session["username"]
-    specificData = []
-    loadSpecificImageData(specificData, photoID)
-    return render_template("tag.html", image=specificData)
+    taggedUsers = []
+    loadTaggedUsersData(taggedUsers,photoID)
+    return render_template("tag.html", image=loadSpecificImageData(photoID), tagged=taggedUsers)
 
 @app.route("/upload", methods=['GET'])
 @login_required
