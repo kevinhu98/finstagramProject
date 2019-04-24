@@ -63,9 +63,11 @@ def loadTaggedUsersData(taggedUsers, photoID):
         cursor.execute(loadTaggedUsersQuery, photoID)
     taggedUsers.extend(cursor.fetchall())
 
-def loadTaggedData():
-    pass
-
+def loadTaggableUsersData(taggableUsers,photoID):
+    loadTaggableUsersQuery = "SELECT username from person WHERE username NOT IN (SELECT username from tag WHERE photoID = %s)"
+    with connection.cursor() as cursor:
+        cursor.execute(loadTaggableUsersQuery, photoID)
+    taggableUsers.extend(cursor.fetchall())
 app = Flask(__name__)
 app.secret_key = "super secret key"
 IMAGES_DIR = os.path.join(os.getcwd(), "images")
@@ -100,9 +102,58 @@ def home():
 @app.route("/tag/<photoID>", methods=['GET'])
 @login_required
 def tag(photoID):
-    taggedUsers = []
+    username = session["username"]
+    taggedUsers, taggableUsers = [], []
     loadTaggedUsersData(taggedUsers,photoID)
-    return render_template("tag.html", image=loadSpecificImageData(photoID), tagged=taggedUsers)
+    loadTaggableUsersData(taggableUsers, photoID)
+    return render_template("tag.html", image=loadSpecificImageData(photoID), tagged=taggedUsers, taggable = taggableUsers, photoID = photoID)
+
+@app.route("/tag/<photoID>", methods=['POST'])
+@login_required
+def tag2(photoID):
+    username = session["username"]
+    userToTag = request.form.get("taggableUsers")
+    sendTagRequestQuery = "INSERT INTO tag VALUES (%s, %s, %s)"
+    viewableImages, taggedUsers, taggableUsers  = [], [], []
+    loadViewableImageData(viewableImages, userToTag)
+    loadTaggedUsersData(taggedUsers, photoID)
+    loadTaggableUsersData(taggableUsers, photoID)
+    print(viewableImages)
+    if (userToTag == username):
+        with connection.cursor() as cursor:
+            cursor.execute(sendTagRequestQuery, (username, photoID, 1))
+        taggedUsers, taggableUsers = [], []
+        loadTaggedUsersData(taggedUsers, photoID)
+        loadTaggableUsersData(taggableUsers, photoID)
+        message = "You have successfully tagged yourself in this photo!"
+        return render_template("tag.html", image=loadSpecificImageData(photoID), tagged=taggedUsers, taggable=taggableUsers, message = message)
+    return render_template("tag.html", image=loadSpecificImageData(photoID), tagged=taggedUsers, taggable = taggableUsers, photoID = photoID)
+
+@app.route("/friendToGroup", methods=['GET','POST'])
+@login_required
+def friendToGroup():
+    username = session["username"]
+    closefriendgroups, people = [], []
+    if request.method == 'GET':
+        loadFriendToGroupData(closefriendgroups,people,username)
+        return render_template("friendToGroup.html", closefriendgroups = closefriendgroups, people = people)
+
+    if request.method == 'POST':
+        closeFriendGroupSelected = request.form.get("closefriendgroups")
+        personToAdd = request.form.get("people")
+        insertUserQuery = "INSERT INTO belong VALUES (%s, %s, %s)"
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute(insertUserQuery, (closeFriendGroupSelected, username, personToAdd))
+            message = "User successfully added"
+            loadFriendToGroupData(closefriendgroups,people,username)
+            return render_template("friendToGroup.html", message=message, closefriendgroups = closefriendgroups, people = people)
+        except:
+            message = "This person is already in that group"
+            loadFriendToGroupData(closefriendgroups, people, username)
+            return render_template("friendToGroup.html", message=message, closefriendgroups = closefriendgroups, people = people)
+
+
 
 @app.route("/upload", methods=['GET'])
 @login_required
@@ -176,30 +227,6 @@ def follow():
                 message = "You cannot leave both fields empty!"
                 loadFollowData(followRequests, people, username)
                 return render_template("follow.html", people=people, followRequests=followRequests, message=message)
-
-@app.route("/friendToGroup", methods=['GET','POST'])
-@login_required
-def friendToGroup():
-    username = session["username"]
-    closefriendgroups, people = [], []
-    if request.method == 'GET':
-        loadFriendToGroupData(closefriendgroups,people,username)
-        return render_template("friendToGroup.html", closefriendgroups = closefriendgroups, people = people)
-
-    if request.method == 'POST':
-        closeFriendGroupSelected = request.form.get("closefriendgroups")
-        personToAdd = request.form.get("people")
-        insertUserQuery = "INSERT INTO belong VALUES (%s, %s, %s)"
-        try:
-            with connection.cursor() as cursor:
-                cursor.execute(insertUserQuery, (closeFriendGroupSelected, username, personToAdd))
-            message = "User successfully added"
-            loadFriendToGroupData(closefriendgroups,people,username)
-            return render_template("friendToGroup.html", message=message, closefriendgroups = closefriendgroups, people = people)
-        except:
-            message = "This person is already in that group"
-            loadFriendToGroupData(closefriendgroups, people, username)
-            return render_template("friendToGroup.html", message=message, closefriendgroups = closefriendgroups, people = people)
 
 @app.route("/viewTagged", methods=['GET','POST'])
 @login_required

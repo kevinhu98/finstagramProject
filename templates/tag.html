@@ -7,14 +7,29 @@
 
     <img src="/image/{{image.filePath}}" alt="Card image cap" height = 600 width = 600>
                         <div class="card-body">
-                        <h5 class="card-title"> {{image.photoOwner}}</h5>
-                            <p class="card-text"> {{image.caption}}</p>
-                            <p class="card-text"> Tagged Users: {% for user in tagged %}  <b>{{ user.username }}</b>,{% endfor %}</p>
+                            <h5 class="card-title"> {{image.photoOwner}}</h5>
+                                <p class="card-text"> {{image.caption}}</p>
+                                <p class="card-text"> Tagged Users: {% for user in tagged %}  <b>{{ user.username }}</b>,{% endfor %}</p>
+                            <form action={{url_for('tag', photoID=image.photoID)}} method="post" enctype="multipart/form-data">
+                                <div class="groupList">
+                                    <label><i>Tag a user!</i></label>
+                                    <br>
+                                    <select class="selectpicker" name="taggableUsers" data-live-search="true" single required >
+                                        <option value="" disabled selected> Select a user to tag</option>
+                                        {% for user in taggable %}
+
+                                        <option> {{user.username}}</option>
+
+                                        {% endfor %}
+                                    </select>
+                                    <input type="submit"  class="btn btn-danger"value="Tag User">
+                                </div>
+                            </form>
                             <p class="card-text"><small class="text-muted">Posted on: {{image.timestamp}}
                                 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
                                 PhotoID: {{image.photoID}}</small></p>
                             <p class="card-text"><small class="text-muted"></small></p>
-
+                        </div>
 {% if message %}
 {{ message }}
 {% endif %}
