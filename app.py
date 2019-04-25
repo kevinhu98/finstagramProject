@@ -51,6 +51,30 @@ def loadViewableImageData(imageData,username):
         cursor.execute(getViewableImageDataQuery, (username,username,username,username))
     imageData.extend(cursor.fetchall())
 
+def determineVisibility(userToCheck, photoID):
+    visiblePhotoID, visiblePhotoIDNumbers = [], [] #first is dictionary, second is list
+    getViewablePhotoIDQuery = "SELECT photoID FROM photo WHERE photoID IN(" \
+                                "SELECT photoID FROM photo WHERE photoOwner=%s " \
+                                "UNION " \
+                                "SELECT photoID FROM share JOIN belong ON (share.groupName=belong.groupName AND share.groupOwner = belong.groupOwner) " \
+                                "WHERE belong.username = %s " \
+                                "UNION " \
+                                "SELECT photoID FROM photo JOIN follow ON (photo.photoOwner = follow.followerUsername) " \
+                                "WHERE photo.allFollowers = 1 AND follow.followerUsername = %s " \
+                                "UNION " \
+                                "SELECT photoID FROM tag WHERE tag.acceptedTag = 1 AND tag.username = %s)" \
+                                "ORDER BY timestamp DESC"
+    with connection.cursor() as cursor:
+        cursor.execute(getViewablePhotoIDQuery, (userToCheck, userToCheck, userToCheck, userToCheck))
+    visiblePhotoID = cursor.fetchall()
+    print(visiblePhotoID)
+    for dict in visiblePhotoID:
+        visiblePhotoIDNumbers.append(dict["photoID"])
+    photoID = int(photoID)
+    if (photoID in visiblePhotoIDNumbers):
+        return True
+    return False
+
 def loadSpecificImageData(photoID):
     loadSpecificImageQuery = "SELECT * FROM photo WHERE photoID = %s"
     with connection.cursor() as cursor:
@@ -58,12 +82,14 @@ def loadSpecificImageData(photoID):
     return cursor.fetchone()
 
 def loadTaggedUsersData(taggedUsers, photoID):
+
     loadTaggedUsersQuery = "SELECT username from tag WHERE photoID = %s AND acceptedTag = 1"
     with connection.cursor() as cursor:
         cursor.execute(loadTaggedUsersQuery, photoID)
     taggedUsers.extend(cursor.fetchall())
 
 def loadTaggableUsersData(taggableUsers,photoID):
+
     loadTaggableUsersQuery = "SELECT username from person WHERE username NOT IN (SELECT username from tag WHERE photoID = %s)"
     with connection.cursor() as cursor:
         cursor.execute(loadTaggableUsersQuery, photoID)
@@ -118,7 +144,7 @@ def tag2(photoID):
     loadViewableImageData(viewableImages, userToTag)
     loadTaggedUsersData(taggedUsers, photoID)
     loadTaggableUsersData(taggableUsers, photoID)
-    print(viewableImages)
+
     if (userToTag == username):
         with connection.cursor() as cursor:
             cursor.execute(sendTagRequestQuery, (username, photoID, 1))
@@ -127,8 +153,25 @@ def tag2(photoID):
         loadTaggableUsersData(taggableUsers, photoID)
         message = "You have successfully tagged yourself in this photo!"
         return render_template("tag.html", image=loadSpecificImageData(photoID), tagged=taggedUsers, taggable=taggableUsers, message = message)
-    return render_template("tag.html", image=loadSpecificImageData(photoID), tagged=taggedUsers, taggable = taggableUsers, photoID = photoID)
+    else:
+        try:
+            if (determineVisibility(userToTag, photoID)): #if user can see photo
+                sendTagRequestQuery = "INSERT INTO tag VALUES (%s, %s, %s)"
+                with connection.cursor() as cursor:
+                    cursor.execute(sendTagRequestQuery, (userToTag, photoID, 0))
+                taggableUsers = [] #empty the data to reload
+                loadTaggableUsersData(taggableUsers, photoID)
+                message = "You have successfully sent a tag request to this user!"
+                return render_template("tag.html", image=loadSpecificImageData(photoID), tagged=taggedUsers, taggable=taggableUsers, message = message)
+            else: #if user cannot see photo
+                taggableUsers = [] #empty the data to reload
+                loadTaggableUsersData(taggableUsers, photoID)
 
+                message = "This photo is not visible to that user!"
+                return render_template("tag.html", image=loadSpecificImageData(photoID), tagged=taggedUsers, taggable=taggableUsers, message=message)
+        except: #only necessary if showing people that have been sent request
+            message = "This user has already been sent a tag request that is still pending!"
+            return render_template("tag.html", image=loadSpecificImageData(photoID), tagged=taggedUsers, taggable=taggableUsers, message=message)
 @app.route("/friendToGroup", methods=['GET','POST'])
 @login_required
 def friendToGroup():
