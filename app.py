@@ -51,6 +51,12 @@ def loadViewableImageData(imageData,username):
         cursor.execute(getViewableImageDataQuery, (username,username,username,username))
     imageData.extend(cursor.fetchall())
 
+def loadTaggedImageData(imageData, username):
+    getTaggedImageDataQuery = "SELECT * FROM photo WHERE photoID IN (SELECT photoID FROM tag WHERE acceptedTag = 0 AND username = %s)"
+    with connection.cursor() as cursor:
+        cursor.execute(getTaggedImageDataQuery, username)
+    imageData.extend(cursor.fetchall())
+
 def determineVisibility(userToCheck, photoID):
     visiblePhotoID, visiblePhotoIDNumbers = [], [] #first is dictionary, second is list
     getViewablePhotoIDQuery = "SELECT photoID FROM photo WHERE photoID IN(" \
@@ -271,12 +277,26 @@ def follow():
                 loadFollowData(followRequests, people, username)
                 return render_template("follow.html", people=people, followRequests=followRequests, message=message)
 
-@app.route("/viewTagged", methods=['GET','POST'])
+@app.route("/viewTags", methods=['GET'])
 @login_required
 def viewTagged():
     username = session["username"]
-    taggedImages, photoID = []
+    imageData = []
+    loadTaggedImageData(imageData, username)
+    print(imageData)
+    return render_template("viewTags.html", images=imageData)
 
+@app.route("/viewTags", methods=['POST'])
+@login_required
+def viewTagged2():
+    username = session["username"]
+    imageData = []
+    loadTaggedImageData(imageData, username)
+    if request.form['submit-button-accept']: #if button pressed
+        print(request.form['submit-button-accept'])
+    else:
+        print("brokes")
+    return render_template("viewTags.html", images=imageData)
 @app.route("/images", methods=["GET"])
 @login_required
 def images():

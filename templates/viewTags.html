@@ -1,10 +1,10 @@
 {% extends "base.html" %}
 
 {% block head %}
-    <title>Image Upload</title>
+    <title>Approve and Reject Tags</title>
 {% endblock %}
 {% block body %}
-        <h1>Image Gallery</h1>
+        <h1>Approve or Reject Tags</h1>
             {% for i in range(0, (images|length), 4) %}
 <div class = "row">
 {% for image in images[i:i+4] %}
@@ -14,7 +14,10 @@
                         <div class="card-body">
                         <h5 class="card-title"> Uploaded by: {{image.photoOwner}}</h5>
                             <p class="card-text"> {{image.caption}}</p>
-                            <a class="btn btn-primary" href={{url_for('tag', photoID=image.photoID)}} role="button">View More And Tag</a>
+                                <form action="/viewTags" method="post" enctype="multipart/form-data">
+                                    <input type="submit"  class="btn btn-success" name= "submit-button-accept" value= {{ image.photoID }}>
+                                    <input type="submit" class="btn btn-danger" name= "submit-button-reject" value= {{ image.photoID }}>
+                                </form>
                             <p class="card-text"><small class="text-muted">Posted on: {{image.timestamp}}
                                 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
                                 PhotoID: {{image.photoID}}</small></p>
