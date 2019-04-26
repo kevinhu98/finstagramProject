@@ -15,8 +15,8 @@
                         <h5 class="card-title"> Uploaded by: {{image.photoOwner}}</h5>
                             <p class="card-text"> {{image.caption}}</p>
                                 <form action="/viewTags" method="post" enctype="multipart/form-data">
-                                    <input type="submit"  class="btn btn-success" name= "submit-button-accept" value= {{ image.photoID }}>
-                                    <input type="submit" class="btn btn-danger" name= "submit-button-reject" value= {{ image.photoID }}>
+                                    <input type="submit"  class="btn btn-success" name= "submit-button-accept" value= "Accept Tag Request for Photo:{{ image.photoID }}">
+                                    <input type="submit" class="btn btn-danger" name= "submit-button-reject" value= "Reject Tag Request for Photo:{{ image.photoID }}">
                                 </form>
                             <p class="card-text"><small class="text-muted">Posted on: {{image.timestamp}}
                                 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -29,7 +29,9 @@
                 {% endfor %}
 </div>
             {% endfor %}
+    {% if message %}
+{{ message }}
+{% endif %}
 
-        <a href="/">Go back</a>
-
+<a href="/">Go back</a>
 {% endblock %}

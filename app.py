@@ -230,6 +230,7 @@ def follow():
             personToAccept = request.form.get("followRequestor")
             if (personToAccept == None):
                 message = "You cannot leave both fields empty!"
+                followRequests, people = [], []  # resets both fields
                 loadFollowData(followRequests, people, username)
                 return render_template("follow.html", people=people, followRequests=followRequests, message=message)
 
@@ -238,16 +239,19 @@ def follow():
                 with connection.cursor() as cursor:
                     cursor.execute(acceptUpdateQuery, (personToAccept, username))
                 message = "You have just accepted that user's follow request!"
+                followRequests, people = [], [] #resets both fields
                 loadFollowData(followRequests, people, username)
                 return render_template("follow.html", people=people, followRequests=followRequests, message=message)
             except:
                 message = "You cannot leave both fields empty!"
+                followRequests, people = [], [] #resets both fields
                 loadFollowData(followRequests, people, username)
                 return render_template("follow.html", people=people, followRequests=followRequests, message=message)
         elif request.form['submit-button'] == "Reject":
             personToReject = request.form.get("followRequestor")
             if (personToReject == None):
                 message = "You cannot leave both fields empty!"
+                followRequests, people = [], [] #resets both fields
                 loadFollowData(followRequests, people, username)
                 return render_template("follow.html", people=people, followRequests=followRequests, message=message)
 
@@ -256,6 +260,7 @@ def follow():
                 with connection.cursor() as cursor:
                     cursor.execute(rejectUpdateQuery, (personToReject, username))
                 message = "You have just rejected that user's follow request!"
+                #people = [] #reset list of people to send requests
                 loadFollowData(followRequests, people, username)
                 return render_template("follow.html", people=people, followRequests=followRequests, message=message)
             except:
@@ -292,11 +297,25 @@ def viewTagged2():
     username = session["username"]
     imageData = []
     loadTaggedImageData(imageData, username)
-    if request.form['submit-button-accept']: #if button pressed
-        print(request.form['submit-button-accept'])
-    else:
-        print("brokes")
-    return render_template("viewTags.html", images=imageData)
+    if 'submit-button-accept' in request.form: #if accept button pressed
+        photoIDToAccept = request.form['submit-button-accept'].split(":")[1]
+        tagAcceptQuery = "UPDATE tag SET acceptedTag = 1 WHERE photoID = %s AND username = %s"
+        with connection.cursor() as cursor:
+            cursor.execute(tagAcceptQuery, (photoIDToAccept, username))
+        imageData = []
+        loadTaggedImageData(imageData, username)
+        message = "You have just accepted this tag request!"
+        return render_template("viewTags.html", images=imageData, message = message)
+    else: #user pressed reject
+        photoIDToReject = request.form['submit-button-reject'].split(":")[1]
+        tagRejectQuery = "DELETE FROM tag WHERE photoID = %s AND username = %s"
+        with connection.cursor() as cursor:
+            cursor.execute(tagRejectQuery, (photoIDToReject, username))
+        imageData = []
+        loadTaggedImageData(imageData, username)
+        message = "You have just rejected this tag request!"
+        return render_template("viewTags.html", images=imageData, message=message)
+
 @app.route("/images", methods=["GET"])
 @login_required
 def images():
